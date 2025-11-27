@@ -1,4 +1,9 @@
 import nodemailer from "nodemailer";
+import { 
+  sendRecoveryCheckWebhook, 
+  sendRecoveryRequestWebhook, 
+  isWebhookConfigured 
+} from "./webhook";
 
 const transporter = nodemailer.createTransport({
   host: process.env.SMTP_HOST,
@@ -101,24 +106,6 @@ Equipe Nexus Platform
   }
 }
 
-export interface RecoveryCheckPayload {
-  event: "check";
-  email: string;
-  celular: string | null;
-  external_id: string | null;
-}
-
-export interface RecoveryRequestPayload {
-  event: "recovery";
-  method: "email" | "whatsapp";
-  email: string;
-  celular: string | null;
-  external_id: string | null;
-  userName: string;
-  token: string;
-  resetUrl: string;
-}
-
 export interface RecoveryMethodsResponse {
   email: boolean;
   whatsapp: boolean;
@@ -129,50 +116,7 @@ export async function checkRecoveryMethods(
   celular: string | null,
   externalId: string | null
 ): Promise<RecoveryMethodsResponse> {
-  const endpoint = process.env.ACCOUNT_RECOVER_WA_ENDPOINT;
-  
-  const defaultMethods: RecoveryMethodsResponse = {
-    email: isEmailConfigured(),
-    whatsapp: false,
-  };
-
-  if (!endpoint) {
-    console.warn("ACCOUNT_RECOVER_WA_ENDPOINT not configured");
-    return defaultMethods;
-  }
-
-  try {
-    const payload: RecoveryCheckPayload = {
-      event: "check",
-      email,
-      celular,
-      external_id: externalId,
-    };
-
-    const response = await fetch(endpoint, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(payload),
-    });
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error("Recovery check endpoint error:", errorText);
-      return defaultMethods;
-    }
-
-    const result = await response.json();
-    
-    return {
-      email: result.email ?? defaultMethods.email,
-      whatsapp: result.whatsapp ?? false,
-    };
-  } catch (error) {
-    console.error("Failed to check recovery methods:", error);
-    return defaultMethods;
-  }
+  return sendRecoveryCheckWebhook(email, celular, externalId);
 }
 
 export async function sendPasswordResetWhatsApp(
@@ -182,47 +126,23 @@ export async function sendPasswordResetWhatsApp(
   userName: string,
   token: string
 ): Promise<boolean> {
-  const endpoint = process.env.ACCOUNT_RECOVER_WA_ENDPOINT;
-  
-  if (!endpoint) {
-    console.warn("ACCOUNT_RECOVER_WA_ENDPOINT not configured");
+  if (!isWebhookConfigured()) {
+    console.warn("GLOBAL_WEBHOOK_URL or GLOBAL_API_KEY not configured");
     return false;
   }
 
   const baseUrl = process.env.APP_URL || `http://localhost:${process.env.PORT || 5000}`;
   const resetUrl = `${baseUrl}/reset-password?token=${token}`;
 
-  try {
-    const payload: RecoveryRequestPayload = {
-      event: "recovery",
-      method: "whatsapp",
-      email,
-      celular,
-      external_id: externalId,
-      userName,
-      token,
-      resetUrl,
-    };
-
-    const response = await fetch(endpoint, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(payload),
-    });
-
-    if (!response.ok) {
-      const error = await response.text();
-      console.error("WhatsApp recovery API error:", error);
-      return false;
-    }
-
-    return true;
-  } catch (error) {
-    console.error("Failed to send password reset via WhatsApp:", error);
-    return false;
-  }
+  return sendRecoveryRequestWebhook(
+    "whatsapp",
+    email,
+    celular,
+    externalId,
+    userName,
+    token,
+    resetUrl
+  );
 }
 
 export function isEmailConfigured(): boolean {
@@ -234,5 +154,5 @@ export function isEmailConfigured(): boolean {
 }
 
 export function isWhatsAppConfigured(): boolean {
-  return !!process.env.ACCOUNT_RECOVER_WA_ENDPOINT;
+  return isWebhookConfigured();
 }

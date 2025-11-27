@@ -8,7 +8,18 @@ declare module "express-session" {
   }
 }
 
+declare global {
+  namespace Express {
+    interface Request {
+      isApiAuth?: boolean;
+    }
+  }
+}
+
 export const requireAuth = (req: Request, res: Response, next: NextFunction) => {
+  if (req.isApiAuth) {
+    return next();
+  }
   if (!req.session.userId) {
     return res.status(401).json({ error: "Não autorizado" });
   }

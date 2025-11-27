@@ -118,17 +118,40 @@ Preferred communication style: Simple, everyday language.
 - **SMTP Server**: Configurable email delivery service
 - Required environment variables: SMTP_HOST, SMTP_PORT, SMTP_SECURE, SMTP_USERNAME, SMTP_PASSWORD, SMTP_FROM
 
+## Global Webhook & API Authentication
+- **Global Webhook**: Sends events to external endpoint for integrations
+- **API Key Authentication**: Allows external access to all API routes via API key
+- Required environment variables:
+  - `GLOBAL_WEBHOOK_URL`: External webhook endpoint URL
+  - `GLOBAL_API_KEY`: API key for webhook authentication and global API access
+
+### API Authentication
+All API routes accept authentication via:
+1. Session-based authentication (browser login)
+2. API key authentication via headers:
+   - `Authorization: Bearer <GLOBAL_API_KEY>`
+   - `X-API-Key: <GLOBAL_API_KEY>`
+
+### Webhook Events
+All webhook requests include:
+- `Authorization: Bearer <GLOBAL_API_KEY>` header
+- `X-API-Key: <GLOBAL_API_KEY>` header
+- JSON payload with `event`, `data`, and `timestamp` fields
+
+#### Recovery Events
+- `recovery.check`: Check available recovery methods (email/whatsapp)
+- `recovery.request`: Request password recovery via specific method
+
 ## Password Recovery (Dual Method)
 - **Email Recovery**: Uses SMTP configuration to send password reset emails
-- **WhatsApp Recovery**: Integrates with external endpoint for WhatsApp-based password reset
-- Required environment variable: `ACCOUNT_RECOVER_WA_ENDPOINT` - External API endpoint for WhatsApp recovery
+- **WhatsApp Recovery**: Integrates with global webhook for WhatsApp-based password reset
 
 ### Recovery Flow
 1. User enters email address
-2. System calls `ACCOUNT_RECOVER_WA_ENDPOINT` with `event=check` payload containing: email, celular, external_id
-3. Endpoint returns available methods (email and/or whatsapp)
+2. System sends webhook with `event=recovery.check` containing: email, celular, external_id
+3. Webhook response returns available methods (email and/or whatsapp)
 4. User selects preferred recovery method
-5. System calls endpoint with `event=recovery` payload containing: method, email, celular, external_id, userName, token, resetUrl
+5. System sends webhook with `event=recovery.request` containing: method, email, celular, external_id, userName, token, resetUrl
 
 ## Third-Party Libraries
 
@@ -169,3 +192,5 @@ Required environment variables:
 - `SMTP_*`: Email service configuration
 - `NODE_ENV`: Development/production mode
 - `PORT`: Server port (default 5000)
+- `GLOBAL_WEBHOOK_URL`: External webhook endpoint URL (optional)
+- `GLOBAL_API_KEY`: API key for webhook and global API authentication (optional)
