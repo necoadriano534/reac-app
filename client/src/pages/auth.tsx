@@ -3,12 +3,13 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { motion, AnimatePresence } from "framer-motion";
-import { Loader2, Mail, Lock, User, ArrowLeft } from "lucide-react";
+import { Loader2, Mail, Lock, User, ArrowLeft, MessageCircle, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { PasswordInput } from "@/components/ui/password-input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import logoImage from "@assets/generated_images/abstract_tech_logo_with_blue_and_purple_gradients.png";
 import { useAuth } from "@/lib/auth";
 import { useToast } from "@/hooks/use-toast";
@@ -33,9 +34,21 @@ const recoverySchema = z.object({
 });
 
 type AuthMode = "login" | "register" | "recovery";
+type RecoveryStep = "email" | "methods" | "sent";
+
+interface RecoveryMethods {
+  email: boolean;
+  whatsapp: boolean;
+}
 
 export default function AuthPage() {
   const [mode, setMode] = useState<AuthMode>("login");
+  const [recoveryStep, setRecoveryStep] = useState<RecoveryStep>("email");
+  const [recoveryMethods, setRecoveryMethods] = useState<RecoveryMethods | null>(null);
+  const [selectedMethod, setSelectedMethod] = useState<"email" | "whatsapp">("email");
+  const [recoveryEmail, setRecoveryEmail] = useState("");
+  const [isCheckingMethods, setIsCheckingMethods] = useState(false);
+  const [isSendingRecovery, setIsSendingRecovery] = useState(false);
   const { login, register, isLoading } = useAuth();
   const { toast } = useToast();
 
@@ -50,6 +63,14 @@ export default function AuthPage() {
   const recoveryForm = useForm<z.infer<typeof recoverySchema>>({
     resolver: zodResolver(recoverySchema),
   });
+
+  const resetRecoveryState = () => {
+    setRecoveryStep("email");
+    setRecoveryMethods(null);
+    setSelectedMethod("email");
+    setRecoveryEmail("");
+    recoveryForm.reset();
+  };
 
   const onLogin = async (data: z.infer<typeof loginSchema>) => {
     try {
@@ -83,9 +104,10 @@ export default function AuthPage() {
     }
   };
 
-  const onRecovery = async (data: z.infer<typeof recoverySchema>) => {
+  const onCheckRecoveryMethods = async (data: z.infer<typeof recoverySchema>) => {
+    setIsCheckingMethods(true);
     try {
-      const response = await fetch("/api/auth/forgot-password", {
+      const response = await fetch("/api/auth/recovery/check", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(data),
@@ -94,20 +116,79 @@ export default function AuthPage() {
       const result = await response.json();
 
       if (!response.ok) {
+        throw new Error(result.error || "Erro ao verificar métodos de recuperação");
+      }
+
+      setRecoveryEmail(data.email);
+      setRecoveryMethods(result.methods);
+      
+      if (!result.methods.email && !result.methods.whatsapp) {
+        toast({
+          variant: "destructive",
+          title: "Nenhum método disponível",
+          description: result.message || "Não foi possível encontrar métodos de recuperação para este email.",
+        });
+        return;
+      }
+
+      if (result.methods.email && !result.methods.whatsapp) {
+        setSelectedMethod("email");
+      } else if (result.methods.whatsapp && !result.methods.email) {
+        setSelectedMethod("whatsapp");
+      }
+
+      setRecoveryStep("methods");
+    } catch (error: any) {
+      toast({
+        variant: "destructive",
+        title: "Erro",
+        description: error.message || "Não foi possível verificar os métodos de recuperação.",
+      });
+    } finally {
+      setIsCheckingMethods(false);
+    }
+  };
+
+  const onSendRecovery = async () => {
+    setIsSendingRecovery(true);
+    try {
+      const response = await fetch("/api/auth/forgot-password", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ 
+          email: recoveryEmail,
+          method: selectedMethod 
+        }),
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
         throw new Error(result.error || "Erro ao processar solicitação");
       }
 
+      if (!result.success) {
+        toast({
+          variant: "destructive",
+          title: "Erro ao enviar",
+          description: result.message || "Não foi possível enviar a recuperação.",
+        });
+        return;
+      }
+
+      setRecoveryStep("sent");
       toast({
-        title: "Email enviado",
-        description: "Se o email existir, você receberá instruções de recuperação.",
+        title: "Enviado com sucesso",
+        description: result.message,
       });
-      setMode("login");
     } catch (error: any) {
       toast({
         variant: "destructive",
         title: "Erro",
         description: error.message || "Não foi possível processar a solicitação.",
       });
+    } finally {
+      setIsSendingRecovery(false);
     }
   };
 
@@ -306,40 +387,183 @@ export default function AuthPage() {
                 exit={{ opacity: 0, scale: 0.95 }}
                 transition={{ duration: 0.2 }}
               >
-                <CardHeader>
-                  <button 
-                    onClick={() => setMode("login")} 
-                    className="w-fit mb-2 text-muted-foreground hover:text-foreground flex items-center gap-1 text-sm transition-colors"
-                  >
-                    <ArrowLeft className="w-4 h-4" /> Voltar
-                  </button>
-                  <CardTitle>Recuperar Senha</CardTitle>
-                  <CardDescription>Enviaremos um link de recuperação para seu email</CardDescription>
-                </CardHeader>
-                <form onSubmit={recoveryForm.handleSubmit(onRecovery)}>
-                  <CardContent className="space-y-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="rec-email">Email</Label>
-                      <div className="relative">
-                        <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                        <Input 
-                          id="rec-email" 
-                          placeholder="nome@empresa.com" 
-                          className="pl-9 bg-secondary/50 border-border/50" 
-                          {...recoveryForm.register("email")}
-                        />
-                      </div>
-                      {recoveryForm.formState.errors.email && (
-                        <p className="text-xs text-destructive">{recoveryForm.formState.errors.email.message}</p>
-                      )}
-                    </div>
-                  </CardContent>
-                  <CardFooter>
-                    <Button type="submit" className="w-full bg-primary hover:bg-primary/90 shadow-lg shadow-primary/25" disabled={isLoading}>
-                      {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Enviar Link"}
-                    </Button>
-                  </CardFooter>
-                </form>
+                <AnimatePresence mode="wait">
+                  {recoveryStep === "email" && (
+                    <motion.div
+                      key="recovery-email"
+                      initial={{ opacity: 0, x: -20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      exit={{ opacity: 0, x: 20 }}
+                      transition={{ duration: 0.2 }}
+                    >
+                      <CardHeader>
+                        <button 
+                          onClick={() => { setMode("login"); resetRecoveryState(); }} 
+                          className="w-fit mb-2 text-muted-foreground hover:text-foreground flex items-center gap-1 text-sm transition-colors"
+                          data-testid="button-back-login"
+                        >
+                          <ArrowLeft className="w-4 h-4" /> Voltar
+                        </button>
+                        <CardTitle>Recuperar Senha</CardTitle>
+                        <CardDescription>Digite seu email para verificar as opções de recuperação</CardDescription>
+                      </CardHeader>
+                      <form onSubmit={recoveryForm.handleSubmit(onCheckRecoveryMethods)}>
+                        <CardContent className="space-y-4">
+                          <div className="space-y-2">
+                            <Label htmlFor="rec-email">Email</Label>
+                            <div className="relative">
+                              <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                              <Input 
+                                id="rec-email" 
+                                placeholder="nome@empresa.com" 
+                                className="pl-9 bg-secondary/50 border-border/50" 
+                                data-testid="input-recovery-email"
+                                {...recoveryForm.register("email")}
+                              />
+                            </div>
+                            {recoveryForm.formState.errors.email && (
+                              <p className="text-xs text-destructive">{recoveryForm.formState.errors.email.message}</p>
+                            )}
+                          </div>
+                        </CardContent>
+                        <CardFooter>
+                          <Button 
+                            type="submit" 
+                            className="w-full bg-primary hover:bg-primary/90 shadow-lg shadow-primary/25" 
+                            disabled={isCheckingMethods}
+                            data-testid="button-check-methods"
+                          >
+                            {isCheckingMethods ? <Loader2 className="h-4 w-4 animate-spin" /> : "Continuar"}
+                          </Button>
+                        </CardFooter>
+                      </form>
+                    </motion.div>
+                  )}
+
+                  {recoveryStep === "methods" && recoveryMethods && (
+                    <motion.div
+                      key="recovery-methods"
+                      initial={{ opacity: 0, x: 20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      exit={{ opacity: 0, x: -20 }}
+                      transition={{ duration: 0.2 }}
+                    >
+                      <CardHeader>
+                        <button 
+                          onClick={() => setRecoveryStep("email")} 
+                          className="w-fit mb-2 text-muted-foreground hover:text-foreground flex items-center gap-1 text-sm transition-colors"
+                          data-testid="button-back-email"
+                        >
+                          <ArrowLeft className="w-4 h-4" /> Voltar
+                        </button>
+                        <CardTitle>Escolha o Método</CardTitle>
+                        <CardDescription>Selecione como deseja receber o link de recuperação</CardDescription>
+                      </CardHeader>
+                      <CardContent className="space-y-4">
+                        <RadioGroup 
+                          value={selectedMethod} 
+                          onValueChange={(value) => setSelectedMethod(value as "email" | "whatsapp")}
+                          className="space-y-3"
+                        >
+                          {recoveryMethods.email && (
+                            <div 
+                              className={`flex items-center space-x-3 p-4 rounded-lg border transition-colors cursor-pointer ${
+                                selectedMethod === "email" 
+                                  ? "border-primary bg-primary/5" 
+                                  : "border-border/50 bg-secondary/30"
+                              }`}
+                              onClick={() => setSelectedMethod("email")}
+                              data-testid="option-email"
+                            >
+                              <RadioGroupItem value="email" id="method-email" />
+                              <div className="flex items-center gap-3 flex-1">
+                                <div className="p-2 rounded-full bg-primary/10">
+                                  <Mail className="w-5 h-5 text-primary" />
+                                </div>
+                                <div>
+                                  <Label htmlFor="method-email" className="font-medium cursor-pointer">
+                                    Email
+                                  </Label>
+                                  <p className="text-sm text-muted-foreground">
+                                    Receber link por email
+                                  </p>
+                                </div>
+                              </div>
+                            </div>
+                          )}
+                          {recoveryMethods.whatsapp && (
+                            <div 
+                              className={`flex items-center space-x-3 p-4 rounded-lg border transition-colors cursor-pointer ${
+                                selectedMethod === "whatsapp" 
+                                  ? "border-primary bg-primary/5" 
+                                  : "border-border/50 bg-secondary/30"
+                              }`}
+                              onClick={() => setSelectedMethod("whatsapp")}
+                              data-testid="option-whatsapp"
+                            >
+                              <RadioGroupItem value="whatsapp" id="method-whatsapp" />
+                              <div className="flex items-center gap-3 flex-1">
+                                <div className="p-2 rounded-full bg-emerald-500/10">
+                                  <MessageCircle className="w-5 h-5 text-emerald-500" />
+                                </div>
+                                <div>
+                                  <Label htmlFor="method-whatsapp" className="font-medium cursor-pointer">
+                                    WhatsApp
+                                  </Label>
+                                  <p className="text-sm text-muted-foreground">
+                                    Receber link via WhatsApp
+                                  </p>
+                                </div>
+                              </div>
+                            </div>
+                          )}
+                        </RadioGroup>
+                      </CardContent>
+                      <CardFooter>
+                        <Button 
+                          onClick={onSendRecovery}
+                          className="w-full bg-primary hover:bg-primary/90 shadow-lg shadow-primary/25" 
+                          disabled={isSendingRecovery}
+                          data-testid="button-send-recovery"
+                        >
+                          {isSendingRecovery ? <Loader2 className="h-4 w-4 animate-spin" /> : "Enviar Link"}
+                        </Button>
+                      </CardFooter>
+                    </motion.div>
+                  )}
+
+                  {recoveryStep === "sent" && (
+                    <motion.div
+                      key="recovery-sent"
+                      initial={{ opacity: 0, scale: 0.95 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      exit={{ opacity: 0, scale: 0.95 }}
+                      transition={{ duration: 0.2 }}
+                    >
+                      <CardHeader className="text-center">
+                        <div className="mx-auto mb-4 p-3 rounded-full bg-emerald-500/10">
+                          <CheckCircle2 className="h-8 w-8 text-emerald-500" />
+                        </div>
+                        <CardTitle>Link Enviado</CardTitle>
+                        <CardDescription>
+                          {selectedMethod === "whatsapp" 
+                            ? "Verifique seu WhatsApp para o link de recuperação."
+                            : "Verifique seu email para o link de recuperação."
+                          }
+                        </CardDescription>
+                      </CardHeader>
+                      <CardFooter>
+                        <Button 
+                          onClick={() => { setMode("login"); resetRecoveryState(); }}
+                          className="w-full bg-primary hover:bg-primary/90 shadow-lg shadow-primary/25"
+                          data-testid="button-back-to-login"
+                        >
+                          Voltar para Login
+                        </Button>
+                      </CardFooter>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
               </motion.div>
             )}
           </AnimatePresence>

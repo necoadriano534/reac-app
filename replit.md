@@ -116,7 +116,19 @@ Preferred communication style: Simple, everyday language.
 
 ## Email Service
 - **SMTP Server**: Configurable email delivery service
-- Required environment variables: SMTP_HOST, SMTP_PORT, SMTP_SECURE, SMTP_USER, SMTP_PASS, SMTP_FROM
+- Required environment variables: SMTP_HOST, SMTP_PORT, SMTP_SECURE, SMTP_USERNAME, SMTP_PASSWORD, SMTP_FROM
+
+## Password Recovery (Dual Method)
+- **Email Recovery**: Uses SMTP configuration to send password reset emails
+- **WhatsApp Recovery**: Integrates with external endpoint for WhatsApp-based password reset
+- Required environment variable: `ACCOUNT_RECOVER_WA_ENDPOINT` - External API endpoint for WhatsApp recovery
+
+### Recovery Flow
+1. User enters email address
+2. System calls `ACCOUNT_RECOVER_WA_ENDPOINT` with `event=check` payload containing: email, celular, external_id
+3. Endpoint returns available methods (email and/or whatsapp)
+4. User selects preferred recovery method
+5. System calls endpoint with `event=recovery` payload containing: method, email, celular, external_id, userName, token, resetUrl
 
 ## Third-Party Libraries
 

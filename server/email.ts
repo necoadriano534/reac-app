@@ -101,41 +101,120 @@ Equipe Nexus Platform
   }
 }
 
+export interface RecoveryCheckPayload {
+  event: "check";
+  email: string;
+  celular: string | null;
+  external_id: string | null;
+}
+
+export interface RecoveryRequestPayload {
+  event: "recovery";
+  method: "email" | "whatsapp";
+  email: string;
+  celular: string | null;
+  external_id: string | null;
+  userName: string;
+  token: string;
+  resetUrl: string;
+}
+
+export interface RecoveryMethodsResponse {
+  email: boolean;
+  whatsapp: boolean;
+}
+
+export async function checkRecoveryMethods(
+  email: string,
+  celular: string | null,
+  externalId: string | null
+): Promise<RecoveryMethodsResponse> {
+  const endpoint = process.env.ACCOUNT_RECOVER_WA_ENDPOINT;
+  
+  const defaultMethods: RecoveryMethodsResponse = {
+    email: isEmailConfigured(),
+    whatsapp: false,
+  };
+
+  if (!endpoint) {
+    console.warn("ACCOUNT_RECOVER_WA_ENDPOINT not configured");
+    return defaultMethods;
+  }
+
+  try {
+    const payload: RecoveryCheckPayload = {
+      event: "check",
+      email,
+      celular,
+      external_id: externalId,
+    };
+
+    const response = await fetch(endpoint, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(payload),
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error("Recovery check endpoint error:", errorText);
+      return defaultMethods;
+    }
+
+    const result = await response.json();
+    
+    return {
+      email: result.email ?? defaultMethods.email,
+      whatsapp: result.whatsapp ?? false,
+    };
+  } catch (error) {
+    console.error("Failed to check recovery methods:", error);
+    return defaultMethods;
+  }
+}
+
 export async function sendPasswordResetWhatsApp(
-  phone: string,
-  token: string,
-  userName: string
+  email: string,
+  celular: string | null,
+  externalId: string | null,
+  userName: string,
+  token: string
 ): Promise<boolean> {
-  const endpoint = process.env.ACCOUNT_RECOVERY_WA_ENDPOINT;
+  const endpoint = process.env.ACCOUNT_RECOVER_WA_ENDPOINT;
   
   if (!endpoint) {
-    console.warn("WhatsApp endpoint not configured (ACCOUNT_RECOVERY_WA_ENDPOINT)");
+    console.warn("ACCOUNT_RECOVER_WA_ENDPOINT not configured");
     return false;
   }
 
   const baseUrl = process.env.APP_URL || `http://localhost:${process.env.PORT || 5000}`;
   const resetUrl = `${baseUrl}/reset-password?token=${token}`;
 
-  const message = `Olá, ${userName}!\n\nRecebemos uma solicitação para redefinir a senha da sua conta.\n\nPara redefinir sua senha, acesse o link abaixo:\n${resetUrl}\n\nEste link expira em 1 hora.\n\nSe você não fez essa solicitação, pode ignorar esta mensagem.`;
-
   try {
+    const payload: RecoveryRequestPayload = {
+      event: "recovery",
+      method: "whatsapp",
+      email,
+      celular,
+      external_id: externalId,
+      userName,
+      token,
+      resetUrl,
+    };
+
     const response = await fetch(endpoint, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({
-        phone,
-        message,
-        userName,
-        resetUrl,
-        token,
-      }),
+      body: JSON.stringify(payload),
     });
 
     if (!response.ok) {
       const error = await response.text();
-      console.error("WhatsApp API error:", error);
+      console.error("WhatsApp recovery API error:", error);
       return false;
     }
 
@@ -155,5 +234,5 @@ export function isEmailConfigured(): boolean {
 }
 
 export function isWhatsAppConfigured(): boolean {
-  return !!process.env.ACCOUNT_RECOVERY_WA_ENDPOINT;
+  return !!process.env.ACCOUNT_RECOVER_WA_ENDPOINT;
 }

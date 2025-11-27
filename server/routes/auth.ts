@@ -5,6 +5,7 @@ import { fromError } from "zod-validation-error";
 import { 
   sendPasswordResetEmail, 
   sendPasswordResetWhatsApp, 
+  checkRecoveryMethods,
   isEmailConfigured, 
   isWhatsAppConfigured 
 } from "../email";
@@ -88,16 +89,36 @@ router.post("/logout", (req, res) => {
   });
 });
 
-router.get("/recovery-methods", async (req, res) => {
+router.post("/recovery/check", async (req, res) => {
   try {
-    const methods = {
-      email: isEmailConfigured(),
-      whatsapp: isWhatsAppConfigured(),
-    };
+    const data = resetPasswordSchema.parse(req.body);
+    
+    const user = await storage.getUserByEmail(data.email);
+    
+    if (!user) {
+      return res.json({ 
+        methods: { 
+          email: false, 
+          whatsapp: false 
+        },
+        message: "Verifique o email e tente novamente."
+      });
+    }
+
+    const methods = await checkRecoveryMethods(
+      user.email,
+      user.celular,
+      user.externalId
+    );
+
     res.json({ methods });
-  } catch (error) {
-    console.error("Get recovery methods error:", error);
-    res.status(500).json({ error: "Erro ao buscar métodos de recuperação" });
+  } catch (error: any) {
+    if (error.name === "ZodError") {
+      const validationError = fromError(error);
+      return res.status(400).json({ error: validationError.message });
+    }
+    console.error("Recovery check error:", error);
+    res.status(500).json({ error: "Erro ao verificar métodos de recuperação" });
   }
 });
 
@@ -108,15 +129,11 @@ router.post("/forgot-password", async (req, res) => {
     
     const user = await storage.getUserByEmail(data.email);
     
-    res.json({ 
-      success: true, 
-      message: method === "whatsapp" 
-        ? "Se o número estiver cadastrado, você receberá instruções via WhatsApp."
-        : "Se o email existir, você receberá instruções de recuperação." 
-    });
-    
     if (!user) {
-      return;
+      return res.json({ 
+        success: true, 
+        message: "Se o email existir, você receberá instruções de recuperação." 
+      });
     }
 
     const token = generateResetToken();
@@ -127,22 +144,53 @@ router.post("/forgot-password", async (req, res) => {
     if (method === "whatsapp") {
       if (!isWhatsAppConfigured()) {
         console.warn("WhatsApp endpoint not configured. Password reset not sent.");
-        return;
+        return res.json({ 
+          success: false, 
+          message: "Método de recuperação via WhatsApp não disponível." 
+        });
       }
       
-      if (!user.celular) {
-        console.warn("User does not have a phone number. WhatsApp reset not sent.");
-        return;
-      }
+      const sent = await sendPasswordResetWhatsApp(
+        user.email,
+        user.celular,
+        user.externalId,
+        user.name,
+        token
+      );
       
-      await sendPasswordResetWhatsApp(user.celular, token, user.name);
+      if (sent) {
+        return res.json({ 
+          success: true, 
+          message: "Instruções de recuperação enviadas via WhatsApp." 
+        });
+      } else {
+        return res.json({ 
+          success: false, 
+          message: "Não foi possível enviar via WhatsApp. Tente outro método." 
+        });
+      }
     } else {
       if (!isEmailConfigured()) {
         console.warn("SMTP not configured. Password reset email not sent.");
-        return;
+        return res.json({ 
+          success: false, 
+          message: "Método de recuperação via email não disponível." 
+        });
       }
       
-      await sendPasswordResetEmail(data.email, token, user.name);
+      const sent = await sendPasswordResetEmail(data.email, token, user.name);
+      
+      if (sent) {
+        return res.json({ 
+          success: true, 
+          message: "Instruções de recuperação enviadas para seu email." 
+        });
+      } else {
+        return res.json({ 
+          success: false, 
+          message: "Não foi possível enviar email. Tente outro método." 
+        });
+      }
     }
     
   } catch (error: any) {
