@@ -6,6 +6,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Loader2, Mail, Lock, User, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { PasswordInput } from "@/components/ui/password-input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import logoImage from "@assets/generated_images/abstract_tech_logo_with_blue_and_purple_gradients.png";
@@ -165,10 +166,10 @@ export default function AuthPage() {
                         </button>
                       </div>
                       <div className="relative">
-                        <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                        <Input 
-                          id="password" 
-                          type="password" 
+                        <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground z-10" />
+                        <PasswordInput
+                          id="password"
+                          placeholder="••••••••"
                           className="pl-9 bg-secondary/50 border-border/50"
                           {...loginForm.register("password")}
                         />
@@ -240,10 +241,10 @@ export default function AuthPage() {
                     <div className="space-y-2">
                       <Label htmlFor="reg-pass">Senha</Label>
                       <div className="relative">
-                        <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                        <Input 
-                          id="reg-pass" 
-                          type="password" 
+                        <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground z-10" />
+                        <PasswordInput
+                          id="reg-pass"
+                          placeholder="••••••••"
                           className="pl-9 bg-secondary/50 border-border/50"
                           {...registerForm.register("password")}
                         />
@@ -255,10 +256,10 @@ export default function AuthPage() {
                     <div className="space-y-2">
                       <Label htmlFor="confirm-pass">Confirmar Senha</Label>
                       <div className="relative">
-                        <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                        <Input 
-                          id="confirm-pass" 
-                          type="password" 
+                        <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground z-10" />
+                        <PasswordInput
+                          id="confirm-pass"
+                          placeholder="••••••••"
                           className="pl-9 bg-secondary/50 border-border/50"
                           {...registerForm.register("confirmPassword")}
                         />

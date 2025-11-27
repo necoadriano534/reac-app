@@ -2,13 +2,10 @@ import { useState } from "react";
 import { Link, useLocation } from "wouter";
 import { 
   LayoutDashboard, 
-  Settings, 
   Users, 
-  Bell, 
-  LogOut, 
   ChevronLeft, 
   ChevronRight,
-  Menu,
+  LogOut,
   Search
 } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -37,9 +34,7 @@ export function Layout({ children }: LayoutProps) {
 
   const navItems = [
     { icon: LayoutDashboard, label: "Dashboard", href: "/" },
-    { icon: Users, label: "Equipe", href: "/team" },
-    { icon: Bell, label: "Notificações", href: "/notifications" },
-    { icon: Settings, label: "Configurações", href: "/settings" },
+    { icon: Users, label: "Gerenciar Usuários", href: "/users" },
   ];
 
   return (

@@ -6,6 +6,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import NotFound from "@/pages/not-found";
 import AuthPage from "@/pages/auth";
 import Dashboard from "@/pages/home";
+import UsersPage from "@/pages/users";
 import { AuthProvider, ProtectedRoute, useAuth } from "@/lib/auth";
 
 function Router() {
@@ -28,6 +29,7 @@ function Router() {
       
       {/* Protected Routes */}
       <ProtectedRoute path="/" component={Dashboard} />
+      <ProtectedRoute path="/users" component={UsersPage} />
       
       {/* Fallback */}
       <Route component={NotFound} />
