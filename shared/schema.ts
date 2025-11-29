@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import { pgTable, text, varchar, timestamp, uniqueIndex } from "drizzle-orm/pg-core";
+import { pgTable, text, varchar, timestamp, uniqueIndex, integer, boolean } from "drizzle-orm/pg-core";
 import { createInsertSchema, createSelectSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -60,3 +60,58 @@ export type LoginInput = z.infer<typeof loginSchema>;
 export type UpdateUser = z.infer<typeof updateUserSchema>;
 export type ResetPasswordInput = z.infer<typeof resetPasswordSchema>;
 export type NewPasswordInput = z.infer<typeof newPasswordSchema>;
+
+// Conversations
+export const conversations = pgTable("conversations", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  protocol: text("protocol").notNull().unique(),
+  clientId: varchar("client_id").references(() => users.id),
+  clientName: text("client_name").notNull(),
+  clientEmail: text("client_email"),
+  clientPhone: text("client_phone"),
+  attendantId: varchar("attendant_id").references(() => users.id),
+  channel: text("channel").notNull().default("web"), // 'web' | 'whatsapp' | 'telegram' | 'email'
+  status: text("status").notNull().default("open"), // 'open' | 'pending' | 'closed'
+  priority: text("priority").notNull().default("normal"), // 'low' | 'normal' | 'high' | 'urgent'
+  subject: text("subject"),
+  latitude: text("latitude"),
+  longitude: text("longitude"),
+  city: text("city"),
+  state: text("state"),
+  country: text("country"),
+  lastMessageAt: timestamp("last_message_at").defaultNow(),
+  closedAt: timestamp("closed_at"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const insertConversationSchema = createInsertSchema(conversations).omit({
+  id: true,
+  createdAt: true,
+  lastMessageAt: true,
+  closedAt: true,
+});
+
+export type InsertConversation = z.infer<typeof insertConversationSchema>;
+export type Conversation = typeof conversations.$inferSelect;
+
+// Messages
+export const messages = pgTable("messages", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  conversationId: varchar("conversation_id").notNull().references(() => conversations.id),
+  senderId: varchar("sender_id").references(() => users.id),
+  senderType: text("sender_type").notNull().default("client"), // 'client' | 'attendant' | 'system'
+  senderName: text("sender_name").notNull(),
+  content: text("content").notNull(),
+  contentType: text("content_type").notNull().default("text"), // 'text' | 'image' | 'file' | 'audio'
+  fileUrl: text("file_url"),
+  isRead: boolean("is_read").notNull().default(false),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const insertMessageSchema = createInsertSchema(messages).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type InsertMessage = z.infer<typeof insertMessageSchema>;
+export type Message = typeof messages.$inferSelect;
