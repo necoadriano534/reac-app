@@ -331,7 +331,7 @@ export default function ConversationsPage() {
               </div>
 
               {/* Messages Area */}
-              <ScrollArea className="flex-1 p-4">
+              <ScrollArea className="flex-1 p-4" data-testid="messages-area">
                 <div className="space-y-4">
                   {mockMessages.map((message) => (
                     <div
@@ -340,6 +340,7 @@ export default function ConversationsPage() {
                         "flex gap-3",
                         message.senderType === "attendant" ? "justify-end" : "justify-start"
                       )}
+                      data-testid={`message-${message.id}`}
                     >
                       {message.senderType === "client" && (
                         <Avatar className="h-8 w-8 border border-border/50">
@@ -356,11 +357,11 @@ export default function ConversationsPage() {
                             : "bg-secondary/70 rounded-bl-sm"
                         )}
                       >
-                        <p className="text-sm">{message.content}</p>
+                        <p className="text-sm" data-testid={`text-message-content-${message.id}`}>{message.content}</p>
                         <p className={cn(
                           "text-xs mt-1",
                           message.senderType === "attendant" ? "text-primary-foreground/70" : "text-muted-foreground"
-                        )}>
+                        )} data-testid={`text-message-time-${message.id}`}>
                           {formatTime(message.createdAt!)}
                         </p>
                       </div>
@@ -413,7 +414,7 @@ export default function ConversationsPage() {
                     Protocolo
                   </h4>
                   <div className="flex items-center gap-2 p-3 bg-secondary/50 rounded-lg">
-                    <code className="flex-1 text-sm font-mono text-foreground">
+                    <code className="flex-1 text-sm font-mono text-foreground" data-testid="text-protocol-value">
                       {selectedConversation.protocol}
                     </code>
                     <Button
@@ -439,11 +440,11 @@ export default function ConversationsPage() {
                   <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
                     Canal de Atendimento
                   </h4>
-                  <div className="flex items-center gap-3 p-3 bg-secondary/50 rounded-lg">
+                  <div className="flex items-center gap-3 p-3 bg-secondary/50 rounded-lg" data-testid="info-channel">
                     <div className="p-2 rounded-lg bg-primary/10">
                       <ChannelIcon className="h-5 w-5 text-primary" />
                     </div>
-                    <span className="font-medium">
+                    <span className="font-medium" data-testid="text-channel-label">
                       {channelLabels[selectedConversation.channel] || selectedConversation.channel}
                     </span>
                   </div>
@@ -452,7 +453,7 @@ export default function ConversationsPage() {
                 <Separator className="bg-border/40" />
 
                 {/* Geolocation Section */}
-                <div>
+                <div data-testid="section-geolocation">
                   <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
                     Geolocalizacao
                   </h4>
@@ -460,10 +461,10 @@ export default function ConversationsPage() {
                     <div className="flex items-center gap-3 p-3 bg-secondary/50 rounded-lg">
                       <MapPin className="h-4 w-4 text-muted-foreground" />
                       <div className="flex-1">
-                        <p className="text-sm font-medium">
+                        <p className="text-sm font-medium" data-testid="text-location-city">
                           {selectedConversation.city}, {selectedConversation.state}
                         </p>
-                        <p className="text-xs text-muted-foreground">
+                        <p className="text-xs text-muted-foreground" data-testid="text-location-country">
                           {selectedConversation.country}
                         </p>
                       </div>
@@ -471,7 +472,7 @@ export default function ConversationsPage() {
                     {selectedConversation.latitude && selectedConversation.longitude && (
                       <div className="flex items-center gap-3 p-3 bg-secondary/50 rounded-lg">
                         <Globe className="h-4 w-4 text-muted-foreground" />
-                        <p className="text-xs font-mono text-muted-foreground">
+                        <p className="text-xs font-mono text-muted-foreground" data-testid="text-coordinates">
                           {selectedConversation.latitude}, {selectedConversation.longitude}
                         </p>
                       </div>
@@ -482,25 +483,25 @@ export default function ConversationsPage() {
                 <Separator className="bg-border/40" />
 
                 {/* Attendant Section */}
-                <div>
+                <div data-testid="section-attendant">
                   <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
                     Atendente
                   </h4>
                   {selectedConversation.attendantId ? (
-                    <div className="flex items-center gap-3 p-3 bg-secondary/50 rounded-lg">
+                    <div className="flex items-center gap-3 p-3 bg-secondary/50 rounded-lg" data-testid="info-attendant">
                       <Avatar className="h-10 w-10 border border-border/50">
                         <AvatarFallback className="bg-primary/20 text-primary text-xs">
                           SP
                         </AvatarFallback>
                       </Avatar>
                       <div className="flex-1">
-                        <p className="text-sm font-medium">Suporte Nexus</p>
-                        <p className="text-xs text-muted-foreground">Atendente Online</p>
+                        <p className="text-sm font-medium" data-testid="text-attendant-name">Suporte Nexus</p>
+                        <p className="text-xs text-muted-foreground" data-testid="text-attendant-status">Atendente Online</p>
                       </div>
-                      <span className="flex h-2.5 w-2.5 rounded-full bg-green-500"></span>
+                      <span className="flex h-2.5 w-2.5 rounded-full bg-green-500" data-testid="status-attendant-online"></span>
                     </div>
                   ) : (
-                    <div className="flex items-center gap-3 p-3 bg-secondary/50 rounded-lg text-muted-foreground">
+                    <div className="flex items-center gap-3 p-3 bg-secondary/50 rounded-lg text-muted-foreground" data-testid="info-attendant-empty">
                       <User className="h-5 w-5" />
                       <span className="text-sm">Nao atribuido</span>
                     </div>
@@ -510,7 +511,7 @@ export default function ConversationsPage() {
                 <Separator className="bg-border/40" />
 
                 {/* Client Contact Info */}
-                <div>
+                <div data-testid="section-client-contact">
                   <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
                     Contato do Cliente
                   </h4>
@@ -518,13 +519,13 @@ export default function ConversationsPage() {
                     {selectedConversation.clientEmail && (
                       <div className="flex items-center gap-3 p-3 bg-secondary/50 rounded-lg">
                         <Mail className="h-4 w-4 text-muted-foreground" />
-                        <span className="text-sm">{selectedConversation.clientEmail}</span>
+                        <span className="text-sm" data-testid="text-client-email">{selectedConversation.clientEmail}</span>
                       </div>
                     )}
                     {selectedConversation.clientPhone && (
                       <div className="flex items-center gap-3 p-3 bg-secondary/50 rounded-lg">
                         <Phone className="h-4 w-4 text-muted-foreground" />
-                        <span className="text-sm">{selectedConversation.clientPhone}</span>
+                        <span className="text-sm" data-testid="text-client-phone">{selectedConversation.clientPhone}</span>
                       </div>
                     )}
                   </div>
@@ -533,27 +534,33 @@ export default function ConversationsPage() {
                 <Separator className="bg-border/40" />
 
                 {/* Previous Conversations */}
-                <div>
+                <div data-testid="section-previous-conversations">
                   <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3 flex items-center gap-2">
                     <History className="h-4 w-4" />
                     Conversas Anteriores
                   </h4>
-                  <div className="space-y-2">
-                    {mockPreviousConversations.map((prev) => (
-                      <div
-                        key={prev.id}
-                        className="flex items-center gap-3 p-3 bg-secondary/50 rounded-lg cursor-pointer hover-elevate"
-                        data-testid={`previous-conversation-${prev.id}`}
-                      >
-                        <Clock className="h-4 w-4 text-muted-foreground" />
-                        <div className="flex-1">
-                          <p className="text-sm font-mono">{prev.protocol}</p>
-                          <p className="text-xs text-muted-foreground">{prev.date}</p>
+                  {mockPreviousConversations.length > 0 ? (
+                    <div className="space-y-2">
+                      {mockPreviousConversations.map((prev) => (
+                        <div
+                          key={prev.id}
+                          className="flex items-center gap-3 p-3 bg-secondary/50 rounded-lg cursor-pointer hover-elevate"
+                          data-testid={`previous-conversation-${prev.id}`}
+                        >
+                          <Clock className="h-4 w-4 text-muted-foreground" />
+                          <div className="flex-1">
+                            <p className="text-sm font-mono" data-testid={`text-previous-protocol-${prev.id}`}>{prev.protocol}</p>
+                            <p className="text-xs text-muted-foreground" data-testid={`text-previous-date-${prev.id}`}>{prev.date}</p>
+                          </div>
+                          <ChevronRight className="h-4 w-4 text-muted-foreground" />
                         </div>
-                        <ChevronRight className="h-4 w-4 text-muted-foreground" />
-                      </div>
-                    ))}
-                  </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="p-3 bg-secondary/50 rounded-lg text-center" data-testid="empty-previous-conversations">
+                      <p className="text-sm text-muted-foreground">Nenhuma conversa anterior</p>
+                    </div>
+                  )}
                 </div>
               </div>
             </ScrollArea>
