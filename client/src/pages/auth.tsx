@@ -209,17 +209,17 @@ export default function AuthPage() {
         className="w-full max-w-md relative z-10"
       >
         <Card className="border-border/50 bg-card/50 backdrop-blur-xl shadow-2xl shadow-black/40 overflow-hidden">
-          <div className="p-4 pb-3 flex flex-row items-center gap-3 border-b border-border/10 bg-card/30">
+          <div className="p-6 pb-4 flex flex-col items-center gap-2 border-b border-border/10 bg-card/30 text-center">
             <img 
               src={logoImage} 
               alt="Logo" 
-              className="w-10 h-10 rounded-lg shadow-md shadow-primary/20"
+              className="w-16 h-16 rounded-xl shadow-lg shadow-primary/20 mb-2"
             />
-            <div className="flex flex-col items-start">
-              <h1 className="text-lg font-heading font-bold bg-clip-text text-transparent bg-gradient-to-r from-white to-white/60 leading-none">
+            <div className="flex flex-col items-center">
+              <h1 className="text-2xl font-heading font-bold bg-clip-text text-transparent bg-gradient-to-r from-white to-white/60 leading-none">
                 Nexus Platform
               </h1>
-              <p className="text-xs text-muted-foreground mt-0.5">O futuro da gestão integrada</p>
+              <p className="text-sm text-muted-foreground mt-1">O futuro da gestão integrada</p>
             </div>
           </div>
           <AnimatePresence mode="wait">

@@ -22,10 +22,13 @@ import {
   Clock,
   User,
   ChevronRight,
+  ChevronLeft,
   Smartphone,
   Monitor,
   MessageCircle,
-  History
+  History,
+  PanelRightOpen,
+  PanelRightClose
 } from "lucide-react";
 import type { Conversation, Message } from "@shared/schema";
 
@@ -189,6 +192,7 @@ export default function ConversationsPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [messageInput, setMessageInput] = useState("");
   const [copiedProtocol, setCopiedProtocol] = useState(false);
+  const [isRightSidebarOpen, setIsRightSidebarOpen] = useState(false);
   const { toast } = useToast();
 
   const filteredConversations = mockConversations.filter(
@@ -327,6 +331,18 @@ export default function ConversationsPage() {
                     {selectedConversation.status === "open" ? "Aberto" : 
                      selectedConversation.status === "pending" ? "Pendente" : "Fechado"}
                   </Badge>
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    onClick={() => setIsRightSidebarOpen(!isRightSidebarOpen)}
+                    data-testid="button-toggle-details"
+                  >
+                    {isRightSidebarOpen ? (
+                      <PanelRightClose className="h-4 w-4" />
+                    ) : (
+                      <PanelRightOpen className="h-4 w-4" />
+                    )}
+                  </Button>
                 </div>
               </div>
 
@@ -404,10 +420,11 @@ export default function ConversationsPage() {
         </div>
 
         {/* Right Sidebar - Conversation Info */}
-        <div className="w-80 flex flex-col bg-card/30 rounded-xl border border-border/40 overflow-hidden">
-          {selectedConversation ? (
-            <ScrollArea className="flex-1">
-              <div className="p-4 space-y-6">
+        {isRightSidebarOpen && (
+          <div className="w-80 flex flex-col bg-card/30 rounded-xl border border-border/40 overflow-hidden">
+            {selectedConversation ? (
+              <ScrollArea className="flex-1">
+                <div className="p-4 space-y-6">
                 {/* Protocol Section */}
                 <div>
                   <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
@@ -564,12 +581,13 @@ export default function ConversationsPage() {
                 </div>
               </div>
             </ScrollArea>
-          ) : (
-            <div className="flex-1 flex items-center justify-center text-muted-foreground p-4">
-              <p className="text-sm text-center">Selecione uma conversa para ver os detalhes</p>
-            </div>
-          )}
-        </div>
+            ) : (
+              <div className="flex-1 flex items-center justify-center text-muted-foreground p-4">
+                <p className="text-sm text-center">Selecione uma conversa para ver os detalhes</p>
+              </div>
+            )}
+          </div>
+        )}
       </div>
     </Layout>
   );
