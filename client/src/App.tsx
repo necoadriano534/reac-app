@@ -7,6 +7,7 @@ import NotFound from "@/pages/not-found";
 import AuthPage from "@/pages/auth";
 import Dashboard from "@/pages/home";
 import UsersPage from "@/pages/users";
+import ConversationsPage from "@/pages/conversations";
 import ResetPasswordPage from "@/pages/reset-password";
 import { AuthProvider, ProtectedRoute, useAuth } from "@/lib/auth";
 
@@ -34,6 +35,7 @@ function Router() {
       {/* Protected Routes */}
       <ProtectedRoute path="/" component={Dashboard} />
       <ProtectedRoute path="/users" component={UsersPage} />
+      <ProtectedRoute path="/conversations" component={ConversationsPage} />
       
       {/* Fallback */}
       <Route component={NotFound} />

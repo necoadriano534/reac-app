@@ -6,7 +6,8 @@ import {
   ChevronLeft, 
   ChevronRight,
   LogOut,
-  Search
+  Search,
+  MessageSquare
 } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -34,6 +35,7 @@ export function Layout({ children }: LayoutProps) {
 
   const navItems = [
     { icon: LayoutDashboard, label: "Dashboard", href: "/" },
+    { icon: MessageSquare, label: "Conversas", href: "/conversations" },
     { icon: Users, label: "Gerenciar Usuários", href: "/users" },
   ];
 
